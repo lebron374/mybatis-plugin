@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.tuacy.mybatis.interceptor.mapper.UserManageMapper">
+
+    <insert id="addOneUser" parameterType="com.tuacy.mybatis.interceptor.entity.vo.UserInfoVo">
+        INSERT INTO user(`pkid`, `name`, `password`, `phone`)
+        VALUES (#{pkId}, #{userName}, #{password}, #{phone})
+    </insert>
+
+    <select id="getOneUser" resultType="com.tuacy.mybatis.interceptor.entity.vo.UserInfoVo">
+        SELECT
+            us.pkid as pkId,
+            us.name as userName,
+            us.password as password,
+            us.phone as phone
+        FROM user us
+        LIMIT 1
+    </select>
+
+    <select id="getAllUserList" resultType="com.tuacy.mybatis.interceptor.entity.vo.UserInfoVo">
+
+        SELECT
+            us.pkid as pkId,
+            us.name as userName,
+            us.password as password,
+            us.phone as phone
+        FROM user us
+
+   </select>
+
+    <select id="getAllUserListPage" resultType="com.tuacy.mybatis.interceptor.entity.vo.UserInfoVo">
+
+        SELECT
+          us.pkid as pkId,
+            us.name as userName,
+            us.password as password,
+            us.phone as phone
+        FROM user us
+
+   </select>
+
+    <select id="getAllUserListPageManualCount" resultType="com.tuacy.mybatis.interceptor.entity.vo.UserInfoVo">
+
+        SELECT
+          us.pkid as pkId,
+            us.name as userName,
+            us.password as password,
+            us.phone as phone
+        FROM user us
+
+   </select>
+
+    <!-- 自定义一个count查询 -->
+    <select id="getAllUserListPageManualCount_COUNT" resultType="java.lang.Long">
+
+        SELECT
+          count(1)
+        FROM user us
+
+   </select>
+
+</mapper>
