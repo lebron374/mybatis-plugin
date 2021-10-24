@@ -76,12 +76,15 @@ public class ParamInterceptor implements Interceptor {
             }
         }
 
+        // 修改入参后动态生成的BoundSql对象
         BoundSql boundSql = mappedStatement.getBoundSql(parameterObject);
         String newSql = boundSql.getSql();
 
+        // 生成新的BoundSql
         BoundSql newBoundSql = new BoundSql(mappedStatement.getConfiguration(), newSql,
                 boundSql.getParameterMappings(), boundSql.getParameterObject());
 
+        // 1、通过生成新的MappedStatement对象
         MappedStatement newMappedStatement = newMappedStatement(mappedStatement, new BoundSqlSqlSource(newBoundSql));
         for (ParameterMapping mapping : boundSql.getParameterMappings()) {
             String prop = mapping.getProperty();
@@ -89,8 +92,12 @@ public class ParamInterceptor implements Interceptor {
                 newBoundSql.setAdditionalParameter(prop, boundSql.getAdditionalParameter(prop));
             }
         }
-
         metaParameterHandler.setValue("mappedStatement", newMappedStatement);
+
+        // 2、通过生成新的SqlSource对象
+//        MetaObject metaMappedStatement = MetaObject.forObject(mappedStatement, DEFAULT_OBJECT_FACTORY, DEFAULT_OBJECT_WRAPPER_FACTORY, REFLECTOR_FACTORY);
+//        metaMappedStatement.setValue("sqlSource", new BoundSqlSqlSource(newBoundSql));
+
         // 回写parameterObject对象
         metaParameterHandler.setValue("parameterObject", parameterObject);
         return invocation.proceed();
