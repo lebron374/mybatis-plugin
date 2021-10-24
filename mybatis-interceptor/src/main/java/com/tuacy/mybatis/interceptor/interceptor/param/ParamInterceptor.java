@@ -3,6 +3,8 @@ package com.tuacy.mybatis.interceptor.interceptor.param;
 import org.apache.ibatis.executor.parameter.ParameterHandler;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
+import org.apache.ibatis.mapping.ParameterMapping;
+import org.apache.ibatis.mapping.SqlSource;
 import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.plugin.Intercepts;
 import org.apache.ibatis.plugin.Invocation;
@@ -37,9 +39,9 @@ public class ParamInterceptor implements Interceptor {
         ParameterHandler parameterHandler = (ParameterHandler) invocation.getTarget();
 
         // 通过mybatis的反射来获取对应的值
-        MetaObject metaResultSetHandler = MetaObject.forObject(parameterHandler, DEFAULT_OBJECT_FACTORY, DEFAULT_OBJECT_WRAPPER_FACTORY, REFLECTOR_FACTORY);
-        MappedStatement mappedStatement = (MappedStatement) metaResultSetHandler.getValue("mappedStatement");
-        Object parameterObject = metaResultSetHandler.getValue("parameterObject");
+        MetaObject metaParameterHandler = MetaObject.forObject(parameterHandler, DEFAULT_OBJECT_FACTORY, DEFAULT_OBJECT_WRAPPER_FACTORY, REFLECTOR_FACTORY);
+        MappedStatement mappedStatement = (MappedStatement) metaParameterHandler.getValue("mappedStatement");
+        Object parameterObject = metaParameterHandler.getValue("parameterObject");
 
         // id字段对应执行的SQL的方法的全路径，包含类名和方法名
         String id = mappedStatement.getId();
@@ -69,13 +71,70 @@ public class ParamInterceptor implements Interceptor {
                 // 将修改后的动态参数添加到请求参数当中
                 param.setValue(destKey, destValue);
 
+                param.setValue(destKey, null);
                 break;
             }
         }
 
+        BoundSql boundSql = mappedStatement.getBoundSql(parameterObject);
+        String newSql = boundSql.getSql();
+
+        BoundSql newBoundSql = new BoundSql(mappedStatement.getConfiguration(), newSql,
+                boundSql.getParameterMappings(), boundSql.getParameterObject());
+
+        MappedStatement newMappedStatement = newMappedStatement(mappedStatement, new BoundSqlSqlSource(newBoundSql));
+        for (ParameterMapping mapping : boundSql.getParameterMappings()) {
+            String prop = mapping.getProperty();
+            if (boundSql.hasAdditionalParameter(prop)) {
+                newBoundSql.setAdditionalParameter(prop, boundSql.getAdditionalParameter(prop));
+            }
+        }
+
+        metaParameterHandler.setValue("mappedStatement", newMappedStatement);
         // 回写parameterObject对象
-        metaResultSetHandler.setValue("parameterObject", parameterObject);
+        metaParameterHandler.setValue("parameterObject", parameterObject);
         return invocation.proceed();
+    }
+
+
+    class BoundSqlSqlSource implements SqlSource {
+        private BoundSql boundSql;
+        public BoundSqlSqlSource(BoundSql boundSql) {
+            this.boundSql = boundSql;
+        }
+
+        @Override
+        public BoundSql getBoundSql(Object parameterObject) {
+            return boundSql;
+        }
+
+    }
+
+    private MappedStatement newMappedStatement (MappedStatement ms, SqlSource newSqlSource) {
+        MappedStatement.Builder builder = new
+                MappedStatement.Builder(ms.getConfiguration(), ms.getId(), newSqlSource, ms.getSqlCommandType());
+        builder.resource(ms.getResource());
+        builder.fetchSize(ms.getFetchSize());
+        builder.statementType(ms.getStatementType());
+        builder.keyGenerator(ms.getKeyGenerator());
+
+        if (ms.getKeyProperties() != null && ms.getKeyProperties().length != 0) {
+            StringBuilder keyProperties = new StringBuilder();
+            for (String keyProperty : ms.getKeyProperties()) {
+                keyProperties.append(keyProperty).append(",");
+            }
+            keyProperties.delete(keyProperties.length() - 1, keyProperties.length());
+            builder.keyProperty(keyProperties.toString());
+        }
+
+        builder.timeout(ms.getTimeout());
+        builder.parameterMap(ms.getParameterMap());
+        builder.resultMaps(ms.getResultMaps());
+        builder.resultSetType(ms.getResultSetType());
+        builder.cache(ms.getCache());
+        builder.flushCacheRequired(ms.isFlushCacheRequired());
+        builder.useCache(ms.isUseCache());
+        return builder.build();
     }
 
     @Override

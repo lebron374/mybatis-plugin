@@ -3,8 +3,45 @@
 <mapper namespace="com.tuacy.mybatis.interceptor.mapper.UserManageMapper">
 
     <insert id="addOneUser" parameterType="com.tuacy.mybatis.interceptor.entity.vo.UserInfoVo">
-        INSERT INTO user(`pkid`, `name`, `password`, `phone`)
-        VALUES (#{pkId}, #{userName}, #{password}, #{phone})
+        INSERT INTO user
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+
+            <if test="null != pkId">
+                pkid,
+            </if>
+
+            <if test="null != userName">
+                `name`,
+            </if>
+
+            <if test="null != password">
+                password,
+            </if>
+
+            <if test="null != phone">
+                phone
+            </if>
+        </trim>
+
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+
+          <if test="null != pkId">
+              #{pkId},
+          </if>
+
+          <if test="null != userName">
+              #{userName},
+          </if>
+
+          <if test="null != password">
+              #{password},
+          </if>
+
+          <if test="null != phone">
+            #{phone},
+          </if>
+
+        </trim>
     </insert>
 
     <select id="getOneUser" resultType="com.tuacy.mybatis.interceptor.entity.vo.UserInfoVo">

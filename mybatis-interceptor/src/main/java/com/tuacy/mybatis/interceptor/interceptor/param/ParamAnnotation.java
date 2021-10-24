@@ -20,5 +20,4 @@ public @interface ParamAnnotation {
     String[] srcKey() default {};
 
     String[] destKey() default {};
-
 }
